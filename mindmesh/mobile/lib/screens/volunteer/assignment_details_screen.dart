@@ -1,284 +1,318 @@
 // ============================================================================
-// MindMesh Mobile - Assignment Details Screen (iPhone Volunteer)
-// Inspect pickup, deliveries with quantities, weight, priority, and ACCEPT
+// MindMesh Mobile - Volunteer Task Details (Bottom Sheet / Screen)
+// Clean stop list, route schematic, 2 large figures, and Accept Task button
 // ============================================================================
 
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
 import '../../models/models.dart';
-import 'optimized_route_screen.dart';
+import '../../theme/mindmesh_theme.dart';
 
-class AssignmentDetailsScreen extends StatefulWidget {
-  final AssignmentModel assignment;
+class AssignmentDetailsScreen extends StatelessWidget {
+  final DonationModel donation;
+  final VoidCallback onAccept;
 
-  const AssignmentDetailsScreen({super.key, required this.assignment});
-
-  @override
-  State<AssignmentDetailsScreen> createState() => _AssignmentDetailsScreenState();
-}
-
-class _AssignmentDetailsScreenState extends State<AssignmentDetailsScreen> {
-  final service = MindMeshService();
+  const AssignmentDetailsScreen({
+    super.key,
+    required this.donation,
+    required this.onAccept,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final currentAssignment = service.assignments.firstWhere(
-      (a) => a.id == widget.assignment.id,
-      orElse: () => widget.assignment,
-    );
-
     return Scaffold(
-      backgroundColor: const Color(0xFF09090B),
+      backgroundColor: Colors.white,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF09090B),
-        elevation: 0,
-        title: const Text(
-          'Assignment Details',
-          style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
-        ),
-        iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Task Details'),
+        automaticallyImplyLeading: true,
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // Header Card
-              Container(
-                padding: const EdgeInsets.all(18),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF18181B),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF27272A)),
-                ),
+        child: Column(
+          children: [
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(
-                          'TASK #${currentAssignment.id.substring(0, 10)}',
-                          style: const TextStyle(
-                            color: Color(0xFF71717A),
-                            fontSize: 11,
-                            fontFamily: 'monospace',
-                          ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF10B981).withOpacity(0.15),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Text(
-                            currentAssignment.status.name.toUpperCase(),
-                            style: const TextStyle(
-                              color: Color(0xFF10B981),
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
+                    // Two Large Figures Strip: Total Distance & Estimated Time
+                    Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: MindMeshColors.canvas,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: MindMeshColors.border),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: const [
+                                Text(
+                                  'Total distance',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: MindMeshColors.textSecondary,
+                                  ),
+                                ),
+                                SizedBox(height: 2),
+                                Text(
+                                  '4.2 km',
+                                  style: TextStyle(
+                                    fontSize: 24,
+                                    fontWeight: FontWeight.w700,
+                                    color: MindMeshColors.ink,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ),
-                      ],
+                          Container(width: 1, height: 36, color: MindMeshColors.border),
+                          Expanded(
+                            child: Padding(
+                              padding: const EdgeInsets.only(left: 16),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: const [
+                                  Text(
+                                    'Estimated time',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w500,
+                                      color: MindMeshColors.textSecondary,
+                                    ),
+                                  ),
+                                  SizedBox(height: 2),
+                                  Text(
+                                    '14 min',
+                                    style: TextStyle(
+                                      fontSize: 24,
+                                      fontWeight: FontWeight.w700,
+                                      color: MindMeshColors.brand,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+
+                    // Compact Route Schematic (Clean vector lines and numbered circles)
+                    const Text(
+                      'Route schematic',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: MindMeshColors.ink,
+                      ),
                     ),
                     const SizedBox(height: 8),
-                    Text(
-                      currentAssignment.recipientName,
-                      style: const TextStyle(
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                      decoration: BoxDecoration(
                         color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: MindMeshColors.border),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
-
-              // Specs Grid
-              Row(
-                children: [
-                  Expanded(
-                    child: _DetailBox(
-                      title: 'PORTIONS',
-                      value: '${currentAssignment.quantity}',
-                      subtitle: 'demands fulfilled',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _DetailBox(
-                      title: 'WEIGHT',
-                      value: '${currentAssignment.weightKg} kg',
-                      subtitle: 'carrier payload',
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: _DetailBox(
-                      title: 'DISTANCE',
-                      value: '${currentAssignment.totalDistance} km',
-                      subtitle: 'Dijkstra shortest',
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 24),
-
-              // Pickup Section
-              const Text(
-                'PICKUP ORIGIN',
-                style: TextStyle(color: Color(0xFF71717A), fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF18181B),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF27272A)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.storefront_rounded, color: Color(0xFFF59E0B), size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceAround,
                         children: [
-                          Text(
-                            currentAssignment.pickupLocation,
-                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'Provider ready &bull; Check portions before departure',
-                            style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 11),
-                          ),
+                          _buildSchematicNode(1, 'CHRIST Canteen', isPickup: true),
+                          _buildSchematicLine('1.8 km'),
+                          _buildSchematicNode(2, 'Asha Foundation', isPickup: false),
+                          _buildSchematicLine('1.2 km'),
+                          _buildSchematicNode(3, 'Sneha Shelter', isPickup: false),
                         ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
-              // Delivery Destinations
-              const Text(
-                'DESTINATION DROPOFF',
-                style: TextStyle(color: Color(0xFF71717A), fontSize: 11, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF18181B),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF27272A)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.volunteer_activism_rounded, color: Color(0xFF10B981), size: 22),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            currentAssignment.recipientName,
-                            style: const TextStyle(color: Colors.white, fontSize: 14, fontWeight: FontWeight.bold),
-                          ),
-                          const SizedBox(height: 2),
-                          const Text(
-                            'High Priority Community Shelter Demands',
-                            style: TextStyle(color: Color(0xFFA1A1AA), fontSize: 11),
-                          ),
-                        ],
+                    // Stop List: Pickup and Drop-offs
+                    const Text(
+                      'Stop list',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: MindMeshColors.ink,
                       ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    _buildStopCard(
+                      stepNumber: 1,
+                      type: 'Pickup',
+                      title: donation.pickupLocation,
+                      details: '${donation.quantity} portions (${donation.weightKg} kg) · ${donation.foodName}',
+                      window: 'Arrive by 14:15 PM',
+                      isPickup: true,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStopCard(
+                      stepNumber: 2,
+                      type: 'Drop-off 1',
+                      title: 'Asha Foundation',
+                      details: '30 portions · Koramangala 4th Block',
+                      window: 'Arrive by 14:30 PM',
+                      isPickup: false,
+                    ),
+                    const SizedBox(height: 8),
+                    _buildStopCard(
+                      stepNumber: 3,
+                      type: 'Drop-off 2',
+                      title: 'Sneha Shelter',
+                      details: '20 portions · Indiranagar 100ft Road',
+                      window: 'Arrive by 14:45 PM',
+                      isPickup: false,
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 36),
+            ),
 
-              // Accept / View Route Button
-              SizedBox(
+            // Full-width Accept Task Button
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(top: BorderSide(color: MindMeshColors.border)),
+              ),
+              child: SizedBox(
+                height: 44,
                 width: double.infinity,
-                height: 52,
                 child: ElevatedButton(
-                  onPressed: () {
-                    service.acceptAssignment(currentAssignment.id);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => OptimizedRouteScreen(assignment: currentAssignment),
-                      ),
-                    );
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF6366F1),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
-                      Icon(Icons.check_circle_outline, color: Colors.white, size: 20),
-                      SizedBox(width: 8),
-                      Text(
-                        'ACCEPT & VIEW OPTIMIZED ROUTE',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                          letterSpacing: 0.5,
-                        ),
-                      ),
-                    ],
-                  ),
+                  onPressed: onAccept,
+                  child: const Text('Accept task'),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
-}
 
-class _DetailBox extends StatelessWidget {
-  final String title;
-  final String value;
-  final String subtitle;
-
-  const _DetailBox({required this.title, required this.value, required this.subtitle});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: const Color(0xFF18181B),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFF27272A)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: const TextStyle(color: Color(0xFF71717A), fontSize: 9, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              fontFamily: 'monospace',
+  Widget _buildSchematicNode(int number, String label, {required bool isPickup}) {
+    return Column(
+      children: [
+        Container(
+          width: 26,
+          height: 26,
+          decoration: BoxDecoration(
+            color: isPickup ? MindMeshColors.brand : Colors.white,
+            shape: BoxShape.circle,
+            border: Border.all(color: MindMeshColors.brand, width: 2),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            '$number',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w700,
+              color: isPickup ? Colors.white : MindMeshColors.brand,
             ),
           ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: const TextStyle(fontSize: 10, color: MindMeshColors.textSecondary),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSchematicLine(String distance) {
+    return Expanded(
+      child: Column(
+        children: [
+          Container(
+            height: 2,
+            color: MindMeshColors.brand,
+          ),
           const SizedBox(height: 2),
-          Text(subtitle, style: const TextStyle(color: Color(0xFF52525B), fontSize: 9)),
+          Text(
+            distance,
+            style: const TextStyle(fontSize: 9, color: MindMeshColors.textTertiary, fontFamily: 'monospace'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStopCard({
+    required int stepNumber,
+    required String type,
+    required String title,
+    required String details,
+    required String window,
+    required bool isPickup,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(color: MindMeshColors.border),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 22,
+            height: 22,
+            decoration: BoxDecoration(
+              color: isPickup ? MindMeshColors.brandTint : MindMeshColors.subtleFill,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            alignment: Alignment.center,
+            child: Text(
+              '$stepNumber',
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: isPickup ? MindMeshColors.brand : MindMeshColors.ink,
+              ),
+            ),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text(
+                      type,
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isPickup ? MindMeshColors.brand : MindMeshColors.textSecondary,
+                      ),
+                    ),
+                    Text(
+                      window,
+                      style: const TextStyle(fontSize: 10, color: MindMeshColors.textTertiary),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  title,
+                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: MindMeshColors.ink),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  details,
+                  style: const TextStyle(fontSize: 11, color: MindMeshColors.textSecondary),
+                ),
+              ],
+            ),
+          ),
         ],
       ),
     );

@@ -2,63 +2,69 @@
 
 @layer base {
   :root {
-    --background: #07090e;
-    --foreground: #f1f5f9;
+    --background: #F6F7F5;
+    --foreground: #17201C;
+    --card: #FFFFFF;
+    --card-foreground: #17201C;
+    --border: #E3E7E4;
+    --subtle-fill: #EEF1EE;
+    --brand: #1F5D46;
+    --brand-hover: #184A38;
+    --brand-tint: #E7F1EC;
+    --text-secondary: #55605A;
+    --text-tertiary: #7C867F;
   }
 
   body {
-    background-color: #07090e;
-    color: #f1f5f9;
-    font-family: var(--font-geist-sans), -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    overflow-x: hidden;
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: -apple-system, BlinkMacSystemFont, "Inter Tight", "Inter", "Segoe UI", Roboto, sans-serif;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    margin: 0;
+    padding: 0;
   }
 }
 
-/* Background Ambient Radial Glows */
-.mesh-glow-emerald {
-  background: radial-gradient(circle 500px at 20% 0%, rgba(16, 185, 129, 0.12), transparent 70%);
+/* Tabular figures for numbers, timestamps, weights and distances */
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
 
-.mesh-glow-indigo {
-  background: radial-gradient(circle 600px at 85% 20%, rgba(99, 102, 241, 0.08), transparent 70%);
+/* Subtle focus ring */
+:focus-visible {
+  outline: 2px solid #1F5D46;
+  outline-offset: 1px;
 }
 
-.mesh-grid-pattern {
-  background-size: 32px 32px;
-  background-image: 
-    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
-    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+/* Utilitarian thin borders & surfaces */
+.panel {
+  background-color: #FFFFFF;
+  border: 1px solid #E3E7E4;
+  border-radius: 10px;
 }
 
-/* Premium Glass & Border Accents */
-.glass-panel {
-  background: rgba(15, 20, 31, 0.65);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
+.panel-header {
+  border-bottom: 1px solid #E3E7E4;
+  padding: 14px 18px;
 }
 
-.glass-panel-hover:hover {
-  border-color: rgba(16, 185, 129, 0.35);
-  box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.15);
-}
-
-.glow-emerald-sm {
-  box-shadow: 0 0 20px -3px rgba(16, 185, 129, 0.3);
-}
-
-/* Sleek Scrollbar */
+/* Minimalist scrollbars */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
 }
+
 ::-webkit-scrollbar-track {
-  background: #090d16;
+  background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: #D5DAD6;
   border-radius: 9999px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #B6BEB8;
 }

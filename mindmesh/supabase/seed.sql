@@ -15,28 +15,28 @@ TRUNCATE TABLE public.users CASCADE;
 -- 1. SEED USERS
 -- ----------------------------------------------------------------------------
 INSERT INTO public.users (id, name, email, role, phone) VALUES
-('11111111-1111-1111-1111-111111111111', 'Admin Operator', 'admin@mindmesh.org', 'admin', '+15550100'),
-('22222222-2222-2222-2222-222222222221', 'Campus Central Canteen', 'canteen@campus.edu', 'provider', '+15550201'),
-('22222222-2222-2222-2222-222222222222', 'North Hall Cafe', 'northcafe@campus.edu', 'provider', '+15550202'),
-('22222222-2222-2222-2222-222222222223', 'East Quad Bakery', 'bakery@campus.edu', 'provider', '+15550203'),
-('33333333-3333-3333-3333-333333333331', 'Alex Chen (Volunteer 1)', 'alex.volunteer@mindmesh.org', 'volunteer', '+15550301'),
-('33333333-3333-3333-3333-333333333332', 'Sarah Khan (Volunteer 2)', 'sarah.volunteer@mindmesh.org', 'volunteer', '+15550302');
+('11111111-1111-1111-1111-111111111111', 'Operations Coordinator', 'admin@mindmesh.org', 'admin', '+919880112233'),
+('22222222-2222-2222-2222-222222222221', 'CHRIST Canteen A', 'canteen.a@christ.edu', 'provider', '+919880223344'),
+('22222222-2222-2222-2222-222222222222', 'North Hall Cafe', 'northcafe@indiranagar.org', 'provider', '+919880334455'),
+('22222222-2222-2222-2222-222222222223', 'Koramangala Bakery', 'orders@koramangalabakery.in', 'provider', '+919880445566'),
+('33333333-3333-3333-3333-333333333331', 'Ravi Kumar', 'ravi.kumar@mindmesh.org', 'volunteer', '+919880556677'),
+('33333333-3333-3333-3333-333333333332', 'Priya Sharma', 'priya.sharma@mindmesh.org', 'volunteer', '+919880667788');
 
 -- ----------------------------------------------------------------------------
 -- 2. SEED RECIPIENTS (Target demand & priorities)
 -- ----------------------------------------------------------------------------
 INSERT INTO public.recipients (id, name, type, required_quantity, remaining_demand, latitude, longitude, node_id, priority, status) VALUES
-('44444444-4444-4444-4444-444444444441', 'NGO Alpha', 'NGO', 30, 30, 12.9716, 77.5946, 'NGO_ALPHA', 5, 'available'),
-('44444444-4444-4444-4444-444444444442', 'Shelter Beta', 'Shelter', 40, 40, 12.9750, 77.6000, 'SHELTER_BETA', 4, 'available'),
-('44444444-4444-4444-4444-444444444443', 'Hostel Gamma', 'Hostel', 20, 20, 12.9800, 77.5900, 'HOSTEL_GAMMA', 3, 'available'),
-('44444444-4444-4444-4444-444444444444', 'Community Center Delta', 'Community Center', 25, 25, 12.9650, 77.5850, 'COMMUNITY_DELTA', 2, 'available');
+('44444444-4444-4444-4444-444444444441', 'Asha Foundation', 'NGO', 30, 30, 12.9352, 77.6245, 'NGO_ALPHA', 5, 'available'),
+('44444444-4444-4444-4444-444444444442', 'Sneha Shelter', 'Shelter', 40, 40, 12.9784, 77.6408, 'SHELTER_BETA', 4, 'available'),
+('44444444-4444-4444-4444-444444444443', 'St. Joseph''s Hostel', 'Hostel', 20, 20, 12.9602, 77.6015, 'HOSTEL_GAMMA', 3, 'available'),
+('44444444-4444-4444-4444-444444444444', 'Hosur Road Community Center', 'Community Center', 25, 25, 12.9340, 77.6101, 'COMMUNITY_DELTA', 2, 'available');
 
 -- ----------------------------------------------------------------------------
 -- 3. SEED VOLUNTEERS (Vehicle capacity 50 kg)
 -- ----------------------------------------------------------------------------
 INSERT INTO public.volunteers (id, user_id, name, vehicle_type, vehicle_capacity, current_location, node_id, availability) VALUES
-('55555555-5555-5555-5555-555555555551', '33333333-3333-3333-3333-333333333331', 'Alex Chen', 'Bike', 50.0, 'Campus Central Depot', 'DEPOT', 'available'),
-('55555555-5555-5555-5555-555555555552', '33333333-3333-3333-3333-333333333332', 'Sarah Khan', 'Car', 50.0, 'Central Logistics Hub', 'DEPOT', 'available');
+('55555555-5555-5555-5555-555555555551', '33333333-3333-3333-3333-333333333331', 'Ravi Kumar', 'Delivery Scooter', 50.0, 'Koramangala Hub', 'DEPOT', 'available'),
+('55555555-5555-5555-5555-555555555552', '33333333-3333-3333-3333-333333333332', 'Priya Sharma', 'Compact EV', 50.0, 'Indiranagar Hub', 'DEPOT', 'available');
 
 -- ----------------------------------------------------------------------------
 -- 4. SEED WEIGHTED GRAPH (15 nodes, 28 edges with distances in km)
@@ -100,14 +100,14 @@ INSERT INTO public.donations (
 ) VALUES (
     '66666666-6666-6666-6666-666666666661',
     '22222222-2222-2222-2222-222222222221',
-    'Fresh Lunch Buffet Trays',
+    'Cooked Rice & Dal Trays',
     50,
     'portions',
     25.0,
     NOW() + INTERVAL '45 minutes',
-    'Main Dining Hall Canteen',
+    'CHRIST Central Dining Hall, Hosur Road',
     'CANTEEN',
-    12.9730,
-    77.5980,
+    12.9345,
+    77.6060,
     'available'
 );

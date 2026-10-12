@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'screens/login_screen.dart';
 import 'services/supabase_service.dart';
+import 'theme/mindmesh_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -37,18 +38,7 @@ class MindMeshApp extends StatelessWidget {
     return MaterialApp(
       title: 'MindMesh',
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF09090B),
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF10B981),
-          secondary: Color(0xFF6366F1),
-          surface: Color(0xFF18181B),
-          background: Color(0xFF09090B),
-        ),
-        fontFamily: 'Inter',
-        useMaterial3: true,
-      ),
+      theme: MindMeshTheme.lightTheme,
       home: const LoginScreen(),
     );
   }

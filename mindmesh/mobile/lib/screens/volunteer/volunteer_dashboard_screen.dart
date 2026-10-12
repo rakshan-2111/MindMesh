@@ -1,13 +1,16 @@
 // ============================================================================
-// MindMesh Mobile - iPhone Volunteer Dashboard Screen
-// Live task queue with prominent "Assignment Updated" banner for dynamic re-route
+// MindMesh Mobile - Volunteer Dashboard Screen
+// Cupertino-styled iPhone experience: Tasks, Active, History, Profile
 // ============================================================================
 
 import 'package:flutter/material.dart';
-import '../../services/supabase_service.dart';
 import '../../models/models.dart';
-import '../login_screen.dart';
+import '../../services/supabase_service.dart';
+import '../../theme/mindmesh_theme.dart';
+import '../../widgets/status_chip.dart';
 import 'assignment_details_screen.dart';
+import 'optimized_route_screen.dart';
+import '../login_screen.dart';
 
 class VolunteerDashboardScreen extends StatefulWidget {
   const VolunteerDashboardScreen({super.key});
@@ -17,17 +20,20 @@ class VolunteerDashboardScreen extends StatefulWidget {
 }
 
 class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
-  final service = MindMeshService();
+  final _service = MindMeshService();
+  int _currentTabIndex = 0;
+  bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    service.addListener(_onServiceUpdate);
+    _loadData();
+    _service.addListener(_onServiceUpdate);
   }
 
   @override
   void dispose() {
-    service.removeListener(_onServiceUpdate);
+    _service.removeListener(_onServiceUpdate);
     super.dispose();
   }
 
@@ -35,43 +41,69 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
     if (mounted) setState(() {});
   }
 
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    await _service.fetchInitialData();
+    if (mounted) setState(() => _isLoading = false);
+  }
+
+  void _openTaskDetails(DonationModel donation) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(10)),
+      ),
+      builder: (_) => FractionallySizedBox(
+        heightFactor: 0.85,
+        child: AssignmentDetailsScreen(
+          donation: donation,
+          onAccept: () {
+            Navigator.of(context).pop();
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => OptimizedRouteScreen(donation: donation),
+              ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final assignments = service.assignments;
+    final assignment = _service.assignments.isNotEmpty ? _service.assignments.first : null;
+    final donations = _service.donations;
+    final availableTasks = donations.where((d) => d.status != DonationStatus.delivered).toList();
 
     return Scaffold(
-      backgroundColor: const Color(0xFF09090B),
+      backgroundColor: MindMeshColors.canvas,
       appBar: AppBar(
-        backgroundColor: const Color(0xFF09090B),
-        elevation: 0,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: const [
-            Text(
-              'Volunteer Hub',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
+        title: Row(
+          children: [
+            Container(
+              width: 8,
+              height: 8,
+              decoration: const BoxDecoration(
+                color: MindMeshColors.brand,
+                shape: BoxShape.circle,
               ),
             ),
-            Text(
-              'iPhone Client &bull; Alex Chen (50kg Bike)',
-              style: TextStyle(
-                color: Color(0xFF6366F1),
-                fontSize: 11,
-                fontFamily: 'monospace',
-              ),
-            ),
+            const SizedBox(width: 8),
+            const Text('MindMesh Volunteer'),
           ],
         ),
         actions: [
           IconButton(
-            icon: const Icon(Icons.swap_horiz_rounded, color: Color(0xFFA1A1AA)),
-            tooltip: 'Switch Role',
+            icon: const Icon(Icons.refresh, size: 20, color: MindMeshColors.textSecondary),
+            onPressed: _loadData,
+          ),
+          IconButton(
+            icon: const Icon(Icons.logout_outlined, size: 20, color: MindMeshColors.textSecondary),
             onPressed: () {
-              Navigator.pushReplacement(
-                context,
+              Navigator.of(context).pushReplacement(
                 MaterialPageRoute(builder: (_) => const LoginScreen()),
               );
             },
@@ -79,265 +111,317 @@ class _VolunteerDashboardScreenState extends State<VolunteerDashboardScreen> {
         ],
       ),
       body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              // --------------------------------------------------------------
-              // CRITICAL DAA REQUIREMENT: "Assignment Updated" Banner
-              // Appears when dashboard sets recipient unavailable or dynamic re-opt triggers
-              // --------------------------------------------------------------
-              if (service.hasAssignmentUpdateNotification)
-                Container(
-                  margin: const EdgeInsets.only(bottom: 20),
-                  padding: const EdgeInsets.all(16),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF831843).withOpacity(0.3),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFEC4899), width: 1.5),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFEC4899).withOpacity(0.2),
-                        blurRadius: 10,
-                        offset: const Offset(0, 3),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFEC4899).withOpacity(0.2),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(Icons.notifications_active_rounded, color: Color(0xFFF472B6), size: 20),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'ASSIGNMENT UPDATED!',
-                              style: TextStyle(
-                                color: Color(0xFFF472B6),
-                                fontWeight: FontWeight.w900,
-                                fontSize: 12,
-                                letterSpacing: 0.5,
-                              ),
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              service.updateNotificationMessage ??
-                                  'Shelter Beta became unavailable! DAA engine recalculated optimal path.',
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
-                      IconButton(
-                        icon: const Icon(Icons.close, color: Colors.white70, size: 18),
-                        onPressed: () => service.clearUpdateNotification(),
-                      ),
-                    ],
-                  ),
-                ),
-
-              // Courier Capacity Gauge
+        child: Column(
+          children: [
+            // Dynamic Plan Change Banner if route recalculated
+            if (_service.hasAssignmentUpdateNotification)
               Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF18181B),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFF27272A)),
-                ),
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                color: MindMeshColors.warningBg,
                 child: Row(
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF6366F1).withOpacity(0.15),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: const Icon(Icons.pedal_bike_rounded, color: Color(0xFF6366F1)),
-                    ),
-                    const SizedBox(width: 14),
+                    const Icon(Icons.info_outline, size: 16, color: MindMeshColors.warning),
+                    const SizedBox(width: 8),
                     Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
-                          Text(
-                            'VEHICLE PAYLOAD CAPACITY',
-                            style: TextStyle(color: Color(0xFF71717A), fontSize: 10, fontWeight: FontWeight.bold),
-                          ),
-                          SizedBox(height: 2),
-                          Text(
-                            '50.0 kg Max Load (0/1 Knapsack Verified)',
-                            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
-                        ],
+                      child: Text(
+                        _service.updateNotificationMessage ?? 'Route updated. One stop changed by coordinator.',
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w500,
+                          color: MindMeshColors.warning,
+                        ),
                       ),
                     ),
-                    const Text(
-                      'READY',
-                      style: TextStyle(color: Color(0xFF10B981), fontWeight: FontWeight.bold, fontSize: 11),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        padding: EdgeInsets.zero,
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      onPressed: () {
+                        if (availableTasks.isNotEmpty) {
+                          _openTaskDetails(availableTasks.first);
+                        }
+                      },
+                      child: const Text(
+                        'View changes',
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: MindMeshColors.warning,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
 
-              const Text(
-                'ASSIGNED DISPATCH TASKS (REALTIME)',
-                style: TextStyle(
-                  color: Color(0xFF71717A),
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  letterSpacing: 1.0,
+            // Subtle live indicator
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              alignment: Alignment.centerLeft,
+              child: Row(
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(
+                      color: MindMeshColors.success,
+                      shape: BoxShape.circle,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Text(
+                    'Updated just now · Ravi Kumar (50 kg Scooter)',
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: MindMeshColors.textSecondary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Tasks List
+            Expanded(
+              child: RefreshIndicator(
+                color: MindMeshColors.brand,
+                onRefresh: _loadData,
+                child: ListView(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  children: [
+                    // Active Assignment Banner if exists
+                    if (assignment != null) ...[
+                      InkWell(
+                        onTap: () {
+                          if (availableTasks.isNotEmpty) {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => OptimizedRouteScreen(donation: availableTasks.first),
+                              ),
+                            );
+                          }
+                        },
+                        borderRadius: BorderRadius.circular(10),
+                        child: Container(
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(color: MindMeshColors.brand, width: 1.5),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'Active delivery in progress',
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w600,
+                                      color: MindMeshColors.brand,
+                                      letterSpacing: 0.5,
+                                    ),
+                                  ),
+                                  StatusChip(
+                                    label: '${assignment.totalDistance} km · ${assignment.estimatedTime} min',
+                                    variant: StatusChipVariant.info,
+                                    showDot: false,
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                '${assignment.routeNodes.length} stops scheduled',
+                                style: const TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w700,
+                                  color: MindMeshColors.ink,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              const Text(
+                                'Tap to resume turn-by-turn stop order ➔',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w500,
+                                  color: MindMeshColors.brand,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    const Text(
+                      'Available pickups',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: MindMeshColors.ink,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    if (_isLoading)
+                      _buildSkeleton()
+                    else if (availableTasks.isEmpty)
+                      Container(
+                        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(10),
+                          border: Border.all(color: MindMeshColors.border),
+                        ),
+                        child: const Text(
+                          'No available pickups nearby. New donations will appear automatically.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: MindMeshColors.textSecondary,
+                          ),
+                        ),
+                      )
+                    else
+                      ...availableTasks.map((task) {
+                        final expiryDiff = task.expiryTime.difference(DateTime.now()).inMinutes;
+                        final isUrgent = expiryDiff <= 60;
+
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 8),
+                          child: InkWell(
+                            onTap: () => _openTaskDetails(task),
+                            borderRadius: BorderRadius.circular(10),
+                            child: Container(
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: MindMeshColors.border),
+                              ),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            Expanded(
+                                              child: Text(
+                                                task.pickupLocation,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w600,
+                                                  color: MindMeshColors.ink,
+                                                ),
+                                              ),
+                                            ),
+                                            StatusChip(
+                                              label: isUrgent ? 'High Urgency' : 'Medium Urgency',
+                                              variant: isUrgent ? StatusChipVariant.critical : StatusChipVariant.warning,
+                                            ),
+                                          ],
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${task.quantity} portions (${task.weightKg} kg) · ${task.foodName}',
+                                          style: const TextStyle(
+                                            fontSize: 12,
+                                            color: MindMeshColors.textSecondary,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 8),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'Deadline: ${_formatTime(task.expiryTime)}',
+                                              style: const TextStyle(
+                                                fontSize: 11,
+                                                color: MindMeshColors.textTertiary,
+                                              ),
+                                            ),
+                                            const Text(' · ', style: TextStyle(color: MindMeshColors.textTertiary)),
+                                            const Text(
+                                              '1.8 km away',
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                color: MindMeshColors.textTertiary,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right, size: 18, color: MindMeshColors.textTertiary),
+                                ],
+                              ),
+                            ),
+                          ),
+                        );
+                      }),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-
-              if (assignments.isEmpty)
-                Container(
-                  padding: const EdgeInsets.all(24),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF18181B),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: const Center(
-                    child: Text('No active assignments. Standby for dispatch.'),
-                  ),
-                )
-              else
-                ...assignments.map((assignment) => _AssignmentCard(
-                  assignment: assignment,
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => AssignmentDetailsScreen(assignment: assignment),
-                      ),
-                    );
-                  },
-                )),
-            ],
-          ),
+            ),
+          ],
         ),
+      ),
+      bottomNavigationBar: BottomNavigationBar(
+        currentIndex: _currentTabIndex,
+        onTap: (idx) => setState(() => _currentTabIndex = idx),
+        items: const [
+          BottomNavigationBarItem(
+            icon: Icon(Icons.list_alt_outlined),
+            activeIcon: Icon(Icons.list_alt),
+            label: 'Tasks',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.navigation_outlined),
+            activeIcon: Icon(Icons.navigation),
+            label: 'Active',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.history_outlined),
+            activeIcon: Icon(Icons.history),
+            label: 'History',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.person_outline),
+            activeIcon: Icon(Icons.person),
+            label: 'Profile',
+          ),
+        ],
       ),
     );
   }
-}
 
-class _AssignmentCard extends StatelessWidget {
-  final AssignmentModel assignment;
-  final VoidCallback onTap;
+  String _formatTime(DateTime dt) {
+    final h = dt.hour > 12 ? dt.hour - 12 : (dt.hour == 0 ? 12 : dt.hour);
+    final m = dt.minute.toString().padLeft(2, '0');
+    final period = dt.hour >= 12 ? 'PM' : 'AM';
+    return '$h:$m $period';
+  }
 
-  const _AssignmentCard({required this.assignment, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final isUpdated = assignment.status == AssignmentStatus.updated;
-
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 14),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF18181B),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: isUpdated ? const Color(0xFFEC4899) : const Color(0xFF27272A),
-            width: isUpdated ? 1.5 : 1.0,
+  Widget _buildSkeleton() {
+    return Column(
+      children: List.generate(
+        2,
+        (i) => Container(
+          margin: const EdgeInsets.only(bottom: 8),
+          height: 80,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: MindMeshColors.border),
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Expanded(
-                  child: Text(
-                    assignment.recipientName,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: isUpdated
-                        ? const Color(0xFFEC4899).withOpacity(0.2)
-                        : const Color(0xFF10B981).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(
-                      color: isUpdated
-                          ? const Color(0xFFEC4899).withOpacity(0.4)
-                          : const Color(0xFF10B981).withOpacity(0.3),
-                    ),
-                  ),
-                  child: Text(
-                    assignment.status.name.toUpperCase(),
-                    style: TextStyle(
-                      color: isUpdated ? const Color(0xFFF472B6) : const Color(0xFF10B981),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 10),
-            Row(
-              children: [
-                const Icon(Icons.location_on_outlined, color: Color(0xFF71717A), size: 14),
-                const SizedBox(width: 4),
-                Text(
-                  'Pickup: ${assignment.pickupLocation}',
-                  style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Icon(Icons.scale_rounded, color: Color(0xFF71717A), size: 14),
-                const SizedBox(width: 4),
-                Text(
-                  'Payload: ${assignment.weightKg} kg (${assignment.quantity} portions)',
-                  style: const TextStyle(color: Color(0xFFA1A1AA), fontSize: 12, fontFamily: 'monospace'),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '${assignment.totalDistance} km &bull; ${assignment.estimatedTime} mins ETA',
-                  style: const TextStyle(
-                    color: Color(0xFF10B981),
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                    fontFamily: 'monospace',
-                  ),
-                ),
-                const Text(
-                  'View Route &rarr;',
-                  style: TextStyle(color: Color(0xFF6366F1), fontSize: 12, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ],
         ),
       ),
     );

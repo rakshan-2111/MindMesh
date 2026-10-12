@@ -40,77 +40,111 @@ class MindMeshService extends ChangeNotifier {
     recipients = [
       RecipientModel(
         id: '44444444-4444-4444-4444-444444444441',
-        name: 'NGO Alpha',
+        name: 'Asha Foundation',
         type: 'NGO',
         requiredQuantity: 30,
         remainingDemand: 30,
-        latitude: 12.9716,
-        longitude: 77.5946,
+        latitude: 12.9352,
+        longitude: 77.6245,
         nodeId: 'NGO_ALPHA',
         priority: 5,
         status: 'available',
       ),
       RecipientModel(
         id: '44444444-4444-4444-4444-444444444442',
-        name: 'Shelter Beta',
+        name: 'Sneha Shelter',
         type: 'Shelter',
         requiredQuantity: 40,
         remainingDemand: 40,
-        latitude: 12.9750,
-        longitude: 77.6000,
+        latitude: 12.9784,
+        longitude: 77.6408,
         nodeId: 'SHELTER_BETA',
         priority: 4,
         status: 'available',
       ),
       RecipientModel(
         id: '44444444-4444-4444-4444-444444444443',
-        name: 'Hostel Gamma',
+        name: 'St. Joseph\'s Hostel',
         type: 'Hostel',
         requiredQuantity: 20,
         remainingDemand: 20,
-        latitude: 12.9800,
-        longitude: 77.5900,
+        latitude: 12.9602,
+        longitude: 77.6015,
         nodeId: 'HOSTEL_GAMMA',
         priority: 3,
         status: 'available',
       ),
     ];
 
-    donations = [
-      DonationModel(
-        id: '66666666-6666-6666-6666-666666666661',
-        providerId: '22222222-2222-2222-2222-222222222221',
-        foodName: 'Fresh Lunch Buffet Trays',
-        quantity: 50,
-        weightKg: 25.0,
-        expiryTime: DateTime.now().add(const Duration(minutes: 45)),
-        pickupLocation: 'Campus Central Canteen',
-        nodeId: 'CANTEEN',
-        latitude: 12.9730,
-        longitude: 77.5980,
-        status: DonationStatus.assigned,
-      ),
-    ];
+    donations = [];
+    assignments = [];
+  }
 
-    // Initial assignment: Canteen -> NGO Alpha (30) + Shelter Beta (20)
-    assignments = [
-      AssignmentModel(
-        id: 'assign-101',
-        donationId: donations.first.id,
-        recipientId: recipients[0].id,
-        recipientName: 'NGO Alpha (30) & Shelter Beta (20)',
-        volunteerId: '55555555-5555-5555-5555-555555555551',
-        quantity: 50,
-        weightKg: 25.0,
-        pickupLocation: 'Campus Central Canteen',
-        deliveryLocation: 'NGO Alpha & Shelter Beta',
-        status: AssignmentStatus.assigned,
-        routeNodes: ['DEPOT', 'CANTEEN', 'NGO_ALPHA', 'SHELTER_BETA'],
-        totalDistance: 5.6,
-        estimatedTime: 18,
-        algorithmUsed: 'Dijkstra + Knapsack (W=50kg)',
-      ),
-    ];
+  Future<void> fetchInitialData() async {
+    if (isConnectedToSupabase) {
+      try {
+        final client = Supabase.instance.client;
+        final res = await client.from('donations').select('*').order('created_at', ascending: false);
+        if (res.isNotEmpty) {
+          donations = (res as List).map((json) => DonationModel.fromJson(json)).toList();
+          _donationsController.add(donations);
+        }
+      } catch (e) {
+        debugPrint('Supabase initial fetch: $e');
+      }
+    }
+    notifyListeners();
+  }
+
+  void sendDeviceHeartbeat(String role) {
+    currentRole = role;
+    if (isConnectedToSupabase) {
+      try {
+        final client = Supabase.instance.client;
+        client.channel('mindmesh_realtime_feed').sendBroadcastMessage(
+          event: 'device_heartbeat',
+          payload: {
+            'role': role,
+            'deviceId': role == 'provider' ? 'DEV-ANDR-8841' : 'DEV-IPHN-9923',
+            'platform': defaultTargetPlatform.name,
+            'timestamp': DateTime.now().toIso8601String(),
+          },
+        );
+      } catch (e) {
+        debugPrint('Heartbeat broadcast failed: $e');
+      }
+    }
+    notifyListeners();
+  }
+
+  Future<void> createDonation(DonationModel donation) async {
+    donations.insert(0, donation);
+    _donationsController.add(donations);
+    _recalculatePlan(donation);
+
+    if (isConnectedToSupabase) {
+      try {
+        await Supabase.instance.client.from('donations').insert({
+          'id': donation.id,
+          'provider_id': donation.providerId,
+          'food_name': donation.foodName,
+          'quantity': donation.quantity,
+          'unit': donation.unit,
+          'weight_kg': donation.weightKg,
+          'expiry_time': donation.expiryTime.toIso8601String(),
+          'pickup_location': donation.pickupLocation,
+          'node_id': donation.nodeId,
+          'latitude': donation.latitude,
+          'longitude': donation.longitude,
+          'status': 'available',
+        });
+        debugPrint('Successfully inserted donation ${donation.id} to Supabase');
+      } catch (e) {
+        debugPrint('Supabase insert failed: $e');
+      }
+    }
+
+    notifyListeners();
   }
 
   Future<void> initSupabase({String? url, String? anonKey}) async {

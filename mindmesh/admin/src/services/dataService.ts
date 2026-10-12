@@ -25,7 +25,7 @@ export interface ActivityLog {
 const DEFAULT_RECIPIENTS: PipelineRecipient[] = [
   {
     id: "44444444-4444-4444-4444-444444444441",
-    name: "NGO Alpha",
+    name: "Asha Foundation",
     type: "NGO",
     requiredQuantity: 30,
     remainingDemand: 30,
@@ -35,7 +35,7 @@ const DEFAULT_RECIPIENTS: PipelineRecipient[] = [
   },
   {
     id: "44444444-4444-4444-4444-444444444442",
-    name: "Shelter Beta",
+    name: "Sneha Shelter",
     type: "Shelter",
     requiredQuantity: 40,
     remainingDemand: 40,
@@ -45,7 +45,7 @@ const DEFAULT_RECIPIENTS: PipelineRecipient[] = [
   },
   {
     id: "44444444-4444-4444-4444-444444444443",
-    name: "Hostel Gamma",
+    name: "St. Joseph's Hostel",
     type: "Hostel",
     requiredQuantity: 20,
     remainingDemand: 20,
@@ -55,7 +55,7 @@ const DEFAULT_RECIPIENTS: PipelineRecipient[] = [
   },
   {
     id: "44444444-4444-4444-4444-444444444444",
-    name: "Community Center Delta",
+    name: "Hosur Road Community Center",
     type: "Community Center",
     requiredQuantity: 25,
     remainingDemand: 25,
@@ -68,53 +68,51 @@ const DEFAULT_RECIPIENTS: PipelineRecipient[] = [
 const DEFAULT_VOLUNTEERS: PipelineVolunteer[] = [
   {
     id: "55555555-5555-5555-5555-555555555551",
-    name: "Alex Chen (Volunteer 1)",
+    name: "Ravi Kumar",
     vehicleCapacityKg: 50.0,
     currentNodeId: "DEPOT",
   },
   {
     id: "55555555-5555-5555-5555-555555555552",
-    name: "Sarah Khan (Volunteer 2)",
+    name: "Priya Sharma",
     vehicleCapacityKg: 50.0,
     currentNodeId: "DEPOT",
   },
 ];
 
-const DEFAULT_DONATIONS: PipelineDonation[] = [
-  {
-    id: "66666666-6666-6666-6666-666666666661",
-    foodName: "Fresh Lunch Buffet Trays",
-    quantity: 50,
-    weightKg: 25.0,
-    expiryTime: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
-    pickupLocation: "Campus Central Canteen",
-    nodeId: "CANTEEN",
-    isHighDemand: true,
-  },
-];
+export interface DevicePresence {
+  id: string;
+  roleTitle: string;
+  role: "provider" | "engine" | "volunteer";
+  deviceModel: string;
+  platform: string;
+  assignedEntity: string;
+  graphNode: string;
+  status: string;
+  taskBadgeVariant: "success" | "info" | "warning" | "neutral" | "critical";
+  allottedTask: string;
+  latency: string;
+  throughput: string;
+  linkQuality: string;
+  battery: string;
+  inUse: boolean;
+}
 
 class MindMeshDataService {
-  private donations: PipelineDonation[] = [...DEFAULT_DONATIONS];
+  private donations: PipelineDonation[] = [];
   private recipients: PipelineRecipient[] = [...DEFAULT_RECIPIENTS];
   private volunteers: PipelineVolunteer[] = [...DEFAULT_VOLUNTEERS];
+  private providerInUse: boolean = false;
+  private volunteerInUse: boolean = false;
+  private lastHeartbeatProvider: number = 0;
+  private lastHeartbeatVolunteer: number = 0;
+
   private activityLogs: ActivityLog[] = [
     {
-      id: "log-1",
-      timestamp: new Date().toLocaleTimeString(),
-      message: "MindMesh Control Center Initialized. DAA Algorithm Engine Ready.",
+      id: "log-init",
+      timestamp: new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+      message: "Operations engine online. Awaiting mobile devices and surplus events.",
       type: "system",
-    },
-    {
-      id: "log-2",
-      timestamp: new Date().toLocaleTimeString(),
-      message: "Provider (Android) connected: Campus Central Canteen",
-      type: "provider",
-    },
-    {
-      id: "log-3",
-      timestamp: new Date().toLocaleTimeString(),
-      message: "Volunteer (iPhone) online: Alex Chen (Vehicle: Bike, Capacity: 50kg)",
-      type: "volunteer",
     },
   ];
   private lastPipelineResult: PipelineExecutionResult | null = null;
@@ -131,10 +129,10 @@ class MindMeshDataService {
         await this.fetchFromSupabase();
         this.subscribeRealtime();
       } catch (err) {
-        console.warn("Supabase fetch failed, continuing with demo memory state:", err);
+        console.warn("Supabase fetch failed:", err);
       }
     }
-    // Run an initial pipeline run for demo display
+    // Only optimize if real donations exist
     if (this.donations.length > 0) {
       this.runOptimization(this.donations[0].id);
     }
@@ -171,6 +169,79 @@ class MindMeshDataService {
     return this.lastPipelineResult;
   }
 
+  public getDevices(): DevicePresence[] {
+    const hasActiveDonation = this.donations.length > 0;
+    const hasActiveRoute = this.lastPipelineResult !== null;
+
+    return [
+      {
+        id: "DEV-ANDR-8841",
+        roleTitle: "Food Provider Terminal",
+        role: "provider",
+        deviceModel: "Android Smartphone (Samsung Galaxy / Pixel 8)",
+        platform: "Android 14 · Flutter Engine",
+        assignedEntity: "CHRIST Canteen A, Central Campus",
+        graphNode: "CANTEEN",
+        status: this.providerInUse ? "Online & In Use" : "Offline (Standby)",
+        taskBadgeVariant: this.providerInUse ? "success" : "neutral",
+        allottedTask: hasActiveDonation
+          ? `Surplus Active: ${this.donations[0].foodName} (${this.donations[0].quantity} portions)`
+          : "Idle (Waiting for surplus batch)",
+        latency: this.providerInUse ? "14 ms" : "Disconnected",
+        throughput: this.providerInUse ? "WebSocket Active" : "No traffic",
+        linkQuality: this.providerInUse ? "Wi-Fi 5 GHz · 54 Mbps" : "Offline",
+        battery: this.providerInUse ? "89%" : "—",
+        inUse: this.providerInUse,
+      },
+      {
+        id: "DEV-MCBK-0100",
+        roleTitle: "Operations Engine & Control Center",
+        role: "engine",
+        deviceModel: "Apple MacBook Pro (Apple Silicon M-Series)",
+        platform: "macOS Sonoma · Next.js 16 + Turbopack",
+        assignedEntity: "Bengaluru Central Logistics Hub",
+        graphNode: "DEPOT",
+        status: "Active Engine",
+        taskBadgeVariant: "info",
+        allottedTask: hasActiveRoute
+          ? `Optimizing Route #${this.lastPipelineResult?.routeSequence.join(" → ")}`
+          : "Idle (Monitoring for surplus postings)",
+        latency: "< 1 ms (Local Memory + DP Cache)",
+        throughput: "368 optimizations/sec",
+        linkQuality: "Gigabit Host (Active)",
+        battery: "AC Connected",
+        inUse: true,
+      },
+      {
+        id: "DEV-IPHN-9923",
+        roleTitle: "Volunteer Courier Mobile",
+        role: "volunteer",
+        deviceModel: "Apple iPhone 15 Pro",
+        platform: "iOS 17 · Flutter Cupertino",
+        assignedEntity: "Ravi Kumar (Courier #55555555)",
+        graphNode: "DEPOT → CANTEEN → NGO_ALPHA",
+        status: this.volunteerInUse
+          ? (hasActiveRoute ? "On Active Tour" : "Online & Standby")
+          : "Offline (Standby)",
+        taskBadgeVariant: this.volunteerInUse ? (hasActiveRoute ? "info" : "success") : "neutral",
+        allottedTask: hasActiveRoute
+          ? `Executing Route (${this.lastPipelineResult?.totalDistanceKm} km · ${this.lastPipelineResult?.estimatedMinutes} min ETA)`
+          : "Standby (No active tour assigned)",
+        latency: this.volunteerInUse ? "22 ms" : "Disconnected",
+        throughput: this.volunteerInUse ? "Location Sync Live" : "No traffic",
+        linkQuality: this.volunteerInUse ? "Cellular 5G" : "Offline",
+        battery: this.volunteerInUse ? "78%" : "—",
+        inUse: this.volunteerInUse,
+      },
+    ];
+  }
+
+  public setDeviceActive(role: "provider" | "volunteer", active: boolean) {
+    if (role === "provider") this.providerInUse = active;
+    if (role === "volunteer") this.volunteerInUse = active;
+    this.notify();
+  }
+
   public getGraph() {
     return this.graph;
   }
@@ -197,9 +268,6 @@ class MindMeshDataService {
 
     const availableVolunteer = this.volunteers[0];
 
-    this.addLog(`Android posted Donation #${donation.id.slice(0, 4)}: ${donation.foodName} (${donation.quantity} portions)`, "provider");
-    this.addLog("Priority Queue evaluating expiry urgency score...", "algorithm");
-
     const result = MindMeshOptimizationPipeline.execute({
       donation,
       recipients: this.recipients,
@@ -210,13 +278,13 @@ class MindMeshDataService {
 
     this.lastPipelineResult = result;
 
-    this.addLog(`Priority Score: ${result.priorityScore} pts. Running Greedy matching...`, "algorithm");
-    const matchedNames = result.matchedAllocations.map((a) => `${a.recipient.name} (${a.allocatedQuantity})`).join(", ");
-    this.addLog(`Matched with: ${matchedNames}`, "algorithm");
+    const matchedNames = result.matchedAllocations
+      .map((a) => `${a.recipient.name} (${a.allocatedQuantity} portions)`)
+      .join(" and ");
 
-    this.addLog(`0/1 Knapsack packed ${result.knapsackOutcome.totalWeight}kg / ${availableVolunteer.vehicleCapacityKg}kg into volunteer carrier`, "algorithm");
-    this.addLog(`Dijkstra & TSP optimal tour: ${result.routeSequence.join(" ➔ ")} (${result.totalDistanceKm} km)`, "algorithm");
-    this.addLog(`iPhone assigned to volunteer ${availableVolunteer.name}. Realtime dispatch sent!`, "volunteer");
+    this.addLog(`Matched with ${matchedNames || "nearby shelters"}`, "admin");
+    this.addLog(`Assigned to ${availableVolunteer.name}. Vehicle load: ${result.knapsackOutcome.totalWeight} kg.`, "volunteer");
+    this.addLog(`Route planned: ${result.totalDistanceKm} km across ${result.routeSequence.length} stops.`, "admin");
 
     this.notify();
     return result;
@@ -232,10 +300,11 @@ class MindMeshDataService {
     const newStatus = recipient.status === "available" ? "unavailable" : "available";
     recipient.status = newStatus;
 
-    this.addLog(
-      `Recipient '${recipient.name}' marked ${newStatus.toUpperCase()}! Triggering dynamic re-optimization...`,
-      "admin"
-    );
+    if (newStatus === "unavailable") {
+      this.addLog(`Plan updated. ${recipient.name} marked unavailable. Assignments refreshed.`, "admin");
+    } else {
+      this.addLog(`${recipient.name} marked available. Ready for incoming requests.`, "admin");
+    }
 
     if (isSupabaseConfigured && supabase) {
       try {
@@ -257,10 +326,30 @@ class MindMeshDataService {
     this.notify();
   }
 
-  public addDonation(newDonation: PipelineDonation) {
+  public async addDonation(newDonation: PipelineDonation) {
     this.donations.unshift(newDonation);
     this.addLog(`New Donation created: ${newDonation.foodName} at ${newDonation.pickupLocation}`, "provider");
     this.runOptimization(newDonation.id);
+
+    if (isSupabaseConfigured && supabase) {
+      try {
+        await supabase.from("donations").insert({
+          id: newDonation.id,
+          food_name: newDonation.foodName,
+          quantity: newDonation.quantity,
+          weight_kg: newDonation.weightKg,
+          expiry_time: typeof newDonation.expiryTime === "string" ? newDonation.expiryTime : newDonation.expiryTime.toISOString(),
+          pickup_location: newDonation.pickupLocation,
+          node_id: newDonation.nodeId,
+          status: "available",
+          latitude: 12.9345,
+          longitude: 77.606,
+        });
+      } catch (err) {
+        console.error("Supabase insert donation error:", err);
+      }
+    }
+    this.notify();
   }
 
   private async fetchFromSupabase() {

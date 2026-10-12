@@ -1,241 +1,278 @@
 // ============================================================================
-// MindMesh Mobile - Role Selection & Demo Login Screen
-// Easily toggles between Android Provider Mode and iPhone Volunteer Mode
+// MindMesh Mobile - Sign in & Role Gateway
+// Production Editorial / Utilitarian Theme
 // ============================================================================
 
 import 'package:flutter/material.dart';
 import '../services/supabase_service.dart';
-import 'provider/provider_dashboard_screen.dart';
-import 'volunteer/volunteer_dashboard_screen.dart';
+import '../theme/mindmesh_theme.dart';
+import 'main_navigation_shell.dart';
 
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    final service = MindMeshService();
-
-    return Scaffold(
-      backgroundColor: const Color(0xFF09090B),
-      body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 20.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Logo & Title
-              Center(
-                child: Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF10B981).withOpacity(0.15),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: const Color(0xFF10B981).withOpacity(0.3),
-                      width: 1.5,
-                    ),
-                  ),
-                  child: const Icon(
-                    Icons.auto_awesome,
-                    color: Color(0xFF10B981),
-                    size: 36,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Center(
-                child: Text(
-                  'MindMesh',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 28,
-                    fontWeight: FontWeight.w800,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Center(
-                child: Text(
-                  'Distributed Food Redistribution & Route Optimization',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Color(0xFFA1A1AA),
-                    fontSize: 13,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF18181B),
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: const Color(0xFF27272A)),
-                  ),
-                  child: const Text(
-                    'DAA Final Project Demo Client',
-                    style: TextStyle(
-                      color: Color(0xFF10B981),
-                      fontSize: 11,
-                      fontFamily: 'monospace',
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(height: 48),
-
-              const Text(
-                'SELECT DEVICE CLIENT ROLE',
-                style: TextStyle(
-                  color: Color(0xFF71717A),
-                  fontSize: 11,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.0,
-                ),
-              ),
-              const SizedBox(height: 12),
-
-              // Option 1: Android Provider
-              _RoleCard(
-                title: 'Android Phone: Food Provider',
-                subtitle: 'Restaurant / Canteen posting surplus batches',
-                badgeText: 'PROVIDER',
-                badgeColor: const Color(0xFFF59E0B),
-                icon: Icons.storefront_rounded,
-                onTap: () {
-                  service.currentRole = 'provider';
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const ProviderDashboardScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 14),
-
-              // Option 2: iPhone Volunteer
-              _RoleCard(
-                title: 'iPhone: Volunteer Courier',
-                subtitle: 'Collects donations & delivers to NGOs/Shelters',
-                badgeText: 'VOLUNTEER',
-                badgeColor: const Color(0xFF6366F1),
-                icon: Icons.two_wheeler_rounded,
-                onTap: () {
-                  service.currentRole = 'volunteer';
-                  Navigator.pushReplacement(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => const VolunteerDashboardScreen(),
-                    ),
-                  );
-                },
-              ),
-              const SizedBox(height: 32),
-
-              const Text(
-                'Supabase Realtime & Offline Engine are both active for reliable university presentation.',
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Color(0xFF52525B),
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
+  State<LoginScreen> createState() => _LoginScreenState();
 }
 
-class _RoleCard extends StatelessWidget {
-  final String title;
-  final String subtitle;
-  final String badgeText;
-  final Color badgeColor;
-  final IconData icon;
-  final VoidCallback onTap;
+class _LoginScreenState extends State<LoginScreen> {
+  String _selectedRole = 'provider'; // 'provider' or 'volunteer'
+  final _emailController = TextEditingController(text: 'canteen.a@christ.edu');
+  final _passwordController = TextEditingController(text: 'pass123');
+  bool _obscurePassword = true;
+  bool _isLoading = false;
 
-  const _RoleCard({
-    required this.title,
-    required this.subtitle,
-    required this.badgeText,
-    required this.badgeColor,
-    required this.icon,
-    required this.onTap,
-  });
+  void _switchRole(String role) {
+    setState(() {
+      _selectedRole = role;
+      if (role == 'provider') {
+        _emailController.text = 'canteen.a@christ.edu';
+      } else {
+        _emailController.text = 'ravi.kumar@mindmesh.org';
+      }
+    });
+  }
+
+  void _handleSignIn() {
+    setState(() => _isLoading = true);
+    final service = MindMeshService();
+    service.sendDeviceHeartbeat(_selectedRole);
+    service.fetchInitialData();
+
+    Future.delayed(const Duration(milliseconds: 300), () {
+      if (!mounted) return;
+      setState(() => _isLoading = false);
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(
+          builder: (_) => MainNavigationShell(role: _selectedRole),
+        ),
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF18181B),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFF27272A)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: 46,
-              height: 46,
-              decoration: BoxDecoration(
-                color: badgeColor.withOpacity(0.15),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: badgeColor, size: 24),
-            ),
-            const SizedBox(width: 14),
-            Expanded(
+    final isProvider = _selectedRole == 'provider';
+
+    return Scaffold(
+      backgroundColor: MindMeshColors.canvas,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
+                  // Logo wordmark
                   Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Text(
-                        badgeText,
+                      Container(
+                        width: 10,
+                        height: 10,
+                        decoration: const BoxDecoration(
+                          color: MindMeshColors.brand,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'MindMesh',
                         style: TextStyle(
-                          color: badgeColor,
-                          fontSize: 10,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: 0.5,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w700,
+                          color: MindMeshColors.ink,
+                          letterSpacing: -0.5,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    title,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+                  const SizedBox(height: 6),
+                  const Text(
+                    'Food rescue logistics platform',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 13,
+                      color: MindMeshColors.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: 2),
-                  Text(
-                    subtitle,
-                    style: const TextStyle(
-                      color: Color(0xFFA1A1AA),
-                      fontSize: 12,
+                  const SizedBox(height: 32),
+
+                  // Role Segmented Control (Provider vs Volunteer)
+                  Container(
+                    padding: const EdgeInsets.all(3),
+                    decoration: BoxDecoration(
+                      color: MindMeshColors.subtleFill,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: MindMeshColors.border),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _switchRole('provider'),
+                            child: Container(
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: isProvider ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: isProvider
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.05),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Food Provider',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: isProvider ? FontWeight.w600 : FontWeight.w500,
+                                  color: isProvider ? MindMeshColors.ink : MindMeshColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        Expanded(
+                          child: GestureDetector(
+                            onTap: () => _switchRole('volunteer'),
+                            child: Container(
+                              height: 36,
+                              decoration: BoxDecoration(
+                                color: !isProvider ? Colors.white : Colors.transparent,
+                                borderRadius: BorderRadius.circular(6),
+                                boxShadow: !isProvider
+                                    ? [
+                                        BoxShadow(
+                                          color: Colors.black.withValues(alpha: 0.05),
+                                          blurRadius: 2,
+                                          offset: const Offset(0, 1),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              alignment: Alignment.center,
+                              child: Text(
+                                'Volunteer Courier',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  fontWeight: !isProvider ? FontWeight.w600 : FontWeight.w500,
+                                  color: !isProvider ? MindMeshColors.ink : MindMeshColors.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+
+                  // Input Card
+                  Container(
+                    padding: const EdgeInsets.all(20),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: MindMeshColors.border),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        // Email label + input
+                        const Text(
+                          'Email address',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: MindMeshColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _emailController,
+                          keyboardType: TextInputType.emailAddress,
+                          style: const TextStyle(fontSize: 13, color: MindMeshColors.ink),
+                          decoration: const InputDecoration(
+                            hintText: 'name@organization.com',
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Password label + input
+                        const Text(
+                          'Password',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: MindMeshColors.ink,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        TextField(
+                          controller: _passwordController,
+                          obscureText: _obscurePassword,
+                          style: const TextStyle(fontSize: 13, color: MindMeshColors.ink),
+                          decoration: InputDecoration(
+                            hintText: 'Enter password',
+                            suffixIcon: IconButton(
+                              icon: Icon(
+                                _obscurePassword
+                                    ? Icons.visibility_outlined
+                                    : Icons.visibility_off_outlined,
+                                size: 18,
+                                color: MindMeshColors.textTertiary,
+                              ),
+                              onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+
+                        // Primary Sign In Button (44px height)
+                        SizedBox(
+                          height: 44,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _handleSignIn,
+                            child: _isLoading
+                                ? const SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: Colors.white,
+                                    ),
+                                  )
+                                : Text('Sign in as ${isProvider ? "Provider" : "Courier"}'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  const SizedBox(height: 16),
+                  const Center(
+                    child: Text(
+                      'Live distribution network active',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: MindMeshColors.textTertiary,
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const Icon(
-              Icons.chevron_right_rounded,
-              color: Color(0xFF71717A),
-            ),
-          ],
+          ),
         ),
       ),
     );
